@@ -1,0 +1,43 @@
+layouts:
+  #===========================================================================
+  A4 portrait:
+  #===========================================================================
+    mainPage:
+      rotation: true
+      pageSize: A4
+      items:
+        - !map
+          width: 545
+          height: 710
+          spacingAfter: 7
+        - !text
+          text: '${mapTitle}'
+          font: Helvetica
+          fontSize: 14
+          spacingAfter: 1
+        - !text
+          text: '${comment}'
+          font: Helvetica
+          fontSize: 10
+
+  #===========================================================================
+  A3 landscape:
+  #===========================================================================
+    mainPage:
+      rotation: true
+      pageSize: A3
+      landscape: true
+      items:
+        - !map
+          width: 1100
+          height: 670
+          spacingAfter: 20
+        - !text
+          text: '${mapTitle}'
+          font: Helvetica
+          fontSize: 20
+          spacingAfter: 5
+        - !text
+          text: '${comment}'
+          font: Helvetica
+          fontSize:15
