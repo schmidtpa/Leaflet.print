@@ -27,6 +27,9 @@ Currently the following extension where made:
 
 
 ## Examples
+
+[Mapfish Example](https://raw.githubusercontent.com/schmidtpa/Leaflet.print/master/examples/mapfish-example.txt)
+
 ```javascript
 var printProvider = L.print.provider({
    method: 'POST',
