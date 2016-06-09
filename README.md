@@ -1,5 +1,5 @@
-#Leaflet.print
-==============
+#custom Leaflet.print
+
 A fork of the [Leaflet.print](https://github.com/aratcliffe/Leaflet.print) project with extensions needed for a work project.
 Note: We use a custom mapfish template which includes a title and a comment the user can set - so the comment function only makes sense if there is such a field in your printing template.
 

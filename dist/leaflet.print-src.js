@@ -1,3 +1,5 @@
+
+
 /*
 	Leaflet.print, implements the Mapfish print protocol allowing a Leaflet map to be printed using either the Mapfish or GeoServer print module.
 	(c) 2013, Adam Ratcliffe, GeoSmart Maps Limited
@@ -28,7 +30,10 @@ L.print.Provider = L.Class.extend({
 		method: 'POST',
 		rotation: 0,
 		customParams: {},
-        legends: false
+ 		legends: false,
+		ignoreLayers: [],
+		comment: false,
+		maxCommentLength: 100
 	},
 
 	initialize: function (options) {
@@ -82,6 +87,20 @@ L.print.Provider = L.Class.extend({
 	print: function (options) {
 		options = L.extend(L.extend({}, this.options), options);
 
+		if(this.options.comment){
+			var userData = -1;
+			
+			while (userData == -1 || (userData != null && userData.length > this.options.maxCommentLength)) {
+				userData = window.prompt('Druckkommentar (max. '+this.options.maxCommentLength+' Zeichen)'," ");
+			}
+			
+			if(!userData){
+				return;
+			}
+			
+			this.options.customParams.comment=userData;
+		}
+
 		if (!options.layout || !options.dpi) {
 			throw 'Must provide a layout name and dpi value to print';
 		}
@@ -90,6 +109,19 @@ L.print.Provider = L.Class.extend({
 			provider: this,
 			map: this._map
 		});
+		
+		var pagesData;
+		
+		if(options.area){
+			pagesData={
+				bbox: this._projectBounds(L.print.Provider.SRS, options.area.getBounds())
+			};
+		} else {
+			pagesData={
+				center: this._projectCoords(L.print.Provider.SRS, this._map.getCenter()),
+				scale: this._getScale(),
+			};
+		}
 
 		var jsonData = JSON.stringify(L.extend({
 			units: L.print.Provider.UNITS,
@@ -99,11 +131,7 @@ L.print.Provider = L.Class.extend({
 			outputFormat: options.outputFormat,
 			outputFilename: options.outputFilename,
 			layers: this._encodeLayers(this._map),
-			pages: [{
-				center: this._projectCoords(L.print.Provider.SRS, this._map.getCenter()),
-				scale: this._getScale(),
-				rotation: options.rotation
-			}]
+			pages: [pagesData]
 		}, this.options.customParams, options.customParams, this._makeLegends(this._map))),
 		    url;
 
@@ -204,7 +232,10 @@ L.print.Provider = L.Class.extend({
 				var lyr = map._layers[id];
 
 				if (lyr instanceof L.TileLayer.WMS || lyr instanceof L.TileLayer) {
-					tiles.push(lyr);
+					//Check if Layer should be ignored
+					if(this.options.ignoreLayers.indexOf(lyr) === -1){
+						tiles.push(lyr);
+					}
 				} else if (lyr instanceof L.ImageOverlay) {
 					imageOverlays.push(lyr);
 				} else if (lyr instanceof L.Marker) {
@@ -400,8 +431,15 @@ L.print.Provider = L.Class.extend({
 				if (baseUrl.indexOf('{s}') !== -1) {
 					baseUrl = baseUrl.replace('{s}', layer.options.subdomains[0]);
 				}
+				
+				// Check if maxNativeZoom is set
+				var maxZoom=layer.options.maxZoom;
+				
+				if(layer.options.maxNativeZoom){
+					maxZoom=layer.options.maxNativeZoom
+				}
 
-				for (zoom = 0; zoom <= layer.options.maxZoom; ++zoom) {
+				for (zoom = 0; zoom <= maxZoom; ++zoom) {
 					resolutions.push(L.print.Provider.MAX_RESOLUTION / Math.pow(2, zoom));
 				}
 
@@ -698,7 +736,9 @@ L.Control.Print = L.Control.extend({
 
 	options: {
 		position: 'topleft',
-		showLayouts: true
+		showLayouts: true,
+		showArea: false,
+		layoutAreas: null
 	},
 
 	initialize: function (options) {
@@ -786,7 +826,8 @@ L.Control.Print = L.Control.extend({
 				text: this._ellipsis(layouts[i].name, 16),
 				container: li,
 				callback: this.onActionClick,
-				context: this
+				context: this,
+				area: false
 			});
 
 			this._actionButtons[L.stamp(button)] = {
@@ -845,6 +886,33 @@ L.Control.Print = L.Control.extend({
 		return value;
 	},
 
+	_showPrintArea: function (layoutName) {
+		this._area=null;
+		
+		var height=-1;
+		var width=-1;
+		
+		var layoutAreas=this.options.layoutAreas;
+		
+		Object.keys(layoutAreas).forEach(function(key) {
+			if(key === layoutName){
+				height=layoutAreas[key].height;
+				width=layoutAreas[key].width;
+			}
+		});
+		
+		if(height != -1 && width != -1){
+			this._area=L.areaSelect({width:width, height:height, keepAspectRatio:true});
+			this._area.addTo(this._map);
+		} else {
+			console.log('Area size of layout ' + layoutName + ' not defined.');
+		}
+	},
+	
+	_hidePrintArea: function () {
+		this._area.remove();
+	},
+
 	// --------------------------------------------------
 	// Event Handlers
 	// --------------------------------------------------
@@ -861,9 +929,35 @@ L.Control.Print = L.Control.extend({
 		for (buttonId in this._actionButtons) {
 			if (this._actionButtons.hasOwnProperty(buttonId) && buttonId === id) {
 				button = this._actionButtons[buttonId];
-				this._provider.print({
-					layout: button.name
-				});
+				
+				if(this.options.showArea){
+					if(!button.area){
+						
+						for (buttonId in this._actionButtons) {
+							this._actionButtons[buttonId].area=null;
+						}
+						
+						this._showPrintArea(button.name);
+						button.area=true;
+						
+						break;
+					}
+				}
+				
+				if(this.options.showArea){
+					this._provider.print({
+						layout: button.name,
+						area: this._area
+					});
+				} else {
+					this._provider.print({
+						layout: button.name
+					});
+				}
+
+				button.area=null;
+				this._hidePrintArea();
+
 				break;
 			}
 		}
@@ -889,3 +983,4 @@ L.control.print = function (options) {
 
 
 }(this, document));
+

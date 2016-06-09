@@ -4,7 +4,9 @@ L.Control.Print = L.Control.extend({
 
 	options: {
 		position: 'topleft',
-		showLayouts: true
+		showLayouts: true,
+		showArea: false,
+		layoutAreas: null
 	},
 
 	initialize: function (options) {
@@ -92,7 +94,8 @@ L.Control.Print = L.Control.extend({
 				text: this._ellipsis(layouts[i].name, 16),
 				container: li,
 				callback: this.onActionClick,
-				context: this
+				context: this,
+				area: false
 			});
 
 			this._actionButtons[L.stamp(button)] = {
@@ -151,6 +154,33 @@ L.Control.Print = L.Control.extend({
 		return value;
 	},
 
+	_showPrintArea: function (layoutName) {
+		this._area=null;
+		
+		var height=-1;
+		var width=-1;
+		
+		var layoutAreas=this.options.layoutAreas;
+		
+		Object.keys(layoutAreas).forEach(function(key) {
+			if(key === layoutName){
+				height=layoutAreas[key].height;
+				width=layoutAreas[key].width;
+			}
+		});
+		
+		if(height != -1 && width != -1){
+			this._area=L.areaSelect({width:width, height:height, keepAspectRatio:true});
+			this._area.addTo(this._map);
+		} else {
+			console.log('Area size of layout ' + layoutName + ' not defined.');
+		}
+	},
+	
+	_hidePrintArea: function () {
+		this._area.remove();
+	},
+
 	// --------------------------------------------------
 	// Event Handlers
 	// --------------------------------------------------
@@ -167,9 +197,35 @@ L.Control.Print = L.Control.extend({
 		for (buttonId in this._actionButtons) {
 			if (this._actionButtons.hasOwnProperty(buttonId) && buttonId === id) {
 				button = this._actionButtons[buttonId];
-				this._provider.print({
-					layout: button.name
-				});
+				
+				if(this.options.showArea){
+					if(!button.area){
+						
+						for (buttonId in this._actionButtons) {
+							this._actionButtons[buttonId].area=null;
+						}
+						
+						this._showPrintArea(button.name);
+						button.area=true;
+						
+						break;
+					}
+				}
+				
+				if(this.options.showArea){
+					this._provider.print({
+						layout: button.name,
+						area: this._area
+					});
+				} else {
+					this._provider.print({
+						layout: button.name
+					});
+				}
+
+				button.area=null;
+				this._hidePrintArea();
+
 				break;
 			}
 		}

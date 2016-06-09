@@ -1,3 +1,5 @@
+
+
 .leaflet-print-print {
     background: #fff url(images/printer.png) no-repeat 50% 50%;
 }
@@ -77,3 +79,4 @@
 .leaflet-print-actions a:hover {
 	background-color: #A0A098;
 }
+

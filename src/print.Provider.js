@@ -23,7 +23,10 @@ L.print.Provider = L.Class.extend({
 		method: 'POST',
 		rotation: 0,
 		customParams: {},
-        legends: false
+ 		legends: false,
+		ignoreLayers: [],
+		comment: false,
+		maxCommentLength: 100
 	},
 
 	initialize: function (options) {
@@ -77,6 +80,20 @@ L.print.Provider = L.Class.extend({
 	print: function (options) {
 		options = L.extend(L.extend({}, this.options), options);
 
+		if(this.options.comment){
+			var userData = -1;
+			
+			while (userData == -1 || (userData != null && userData.length > this.options.maxCommentLength)) {
+				userData = window.prompt('Druckkommentar (max. '+this.options.maxCommentLength+' Zeichen)'," ");
+			}
+			
+			if(!userData){
+				return;
+			}
+			
+			this.options.customParams.comment=userData;
+		}
+
 		if (!options.layout || !options.dpi) {
 			throw 'Must provide a layout name and dpi value to print';
 		}
@@ -85,6 +102,19 @@ L.print.Provider = L.Class.extend({
 			provider: this,
 			map: this._map
 		});
+		
+		var pagesData;
+		
+		if(options.area){
+			pagesData={
+				bbox: this._projectBounds(L.print.Provider.SRS, options.area.getBounds())
+			};
+		} else {
+			pagesData={
+				center: this._projectCoords(L.print.Provider.SRS, this._map.getCenter()),
+				scale: this._getScale(),
+			};
+		}
 
 		var jsonData = JSON.stringify(L.extend({
 			units: L.print.Provider.UNITS,
@@ -94,11 +124,7 @@ L.print.Provider = L.Class.extend({
 			outputFormat: options.outputFormat,
 			outputFilename: options.outputFilename,
 			layers: this._encodeLayers(this._map),
-			pages: [{
-				center: this._projectCoords(L.print.Provider.SRS, this._map.getCenter()),
-				scale: this._getScale(),
-				rotation: options.rotation
-			}]
+			pages: [pagesData]
 		}, this.options.customParams, options.customParams, this._makeLegends(this._map))),
 		    url;
 
@@ -199,7 +225,10 @@ L.print.Provider = L.Class.extend({
 				var lyr = map._layers[id];
 
 				if (lyr instanceof L.TileLayer.WMS || lyr instanceof L.TileLayer) {
-					tiles.push(lyr);
+					//Check if Layer should be ignored
+					if(this.options.ignoreLayers.indexOf(lyr) === -1){
+						tiles.push(lyr);
+					}
 				} else if (lyr instanceof L.ImageOverlay) {
 					imageOverlays.push(lyr);
 				} else if (lyr instanceof L.Marker) {
@@ -395,8 +424,15 @@ L.print.Provider = L.Class.extend({
 				if (baseUrl.indexOf('{s}') !== -1) {
 					baseUrl = baseUrl.replace('{s}', layer.options.subdomains[0]);
 				}
+				
+				// Check if maxNativeZoom is set
+				var maxZoom=layer.options.maxZoom;
+				
+				if(layer.options.maxNativeZoom){
+					maxZoom=layer.options.maxNativeZoom
+				}
 
-				for (zoom = 0; zoom <= layer.options.maxZoom; ++zoom) {
+				for (zoom = 0; zoom <= maxZoom; ++zoom) {
 					resolutions.push(L.print.Provider.MAX_RESOLUTION / Math.pow(2, zoom));
 				}
 
