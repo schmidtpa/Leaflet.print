@@ -11,7 +11,6 @@ Currently the following extension where made:
 
 *Requires Leaflet 0.6.0 or newer, jQuery and the  [Leaflet.Areaselect](https://github.com/heyman/leaflet-areaselect) plugin.*
 
-###New Options
 ## Print Provider
 | Option | Type | Default | Description
 | --- | --- | --- | ---
@@ -27,7 +26,7 @@ Currently the following extension where made:
 | layoutAreas |  | `{}` | A json object containing the printing layouts and the default area width and height
 
 
-### Examples
+## Examples
 ```javascript
 var printProvider = L.print.provider({
    method: 'POST',
