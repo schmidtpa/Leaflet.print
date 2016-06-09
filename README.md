@@ -61,5 +61,5 @@ var printControl = L.control.print({
 printControl.addTo(map);
 ```
 
-License
+##License
 This software is released under the MIT licence.
