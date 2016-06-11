@@ -155,7 +155,7 @@ L.Control.Print = L.Control.extend({
 	},
 
 	_showPrintArea: function (layoutName) {
-		this._area=null;
+		this._hidePrintArea();
 		
 		var height=-1;
 		var width=-1;
@@ -178,7 +178,9 @@ L.Control.Print = L.Control.extend({
 	},
 	
 	_hidePrintArea: function () {
-		this._area.remove();
+		if(this._area){
+			this._area.remove();
+		}
 	},
 
 	// --------------------------------------------------
