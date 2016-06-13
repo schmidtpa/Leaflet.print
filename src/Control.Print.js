@@ -154,16 +154,14 @@ L.Control.Print = L.Control.extend({
 		return value;
 	},
 
-	_showPrintArea: function (layoutName) {
-		this._hidePrintArea();
-		
+	_showPrintArea: function (button) {
 		var height=-1;
 		var width=-1;
 		
 		var layoutAreas=this.options.layoutAreas;
 		
 		Object.keys(layoutAreas).forEach(function(key) {
-			if(key === layoutName){
+			if(key === button.name){
 				height=layoutAreas[key].height;
 				width=layoutAreas[key].width;
 			}
@@ -172,14 +170,20 @@ L.Control.Print = L.Control.extend({
 		if(height != -1 && width != -1){
 			this._area=L.areaSelect({width:width, height:height, keepAspectRatio:true});
 			this._area.addTo(this._map);
+			button.area=true;
 		} else {
-			console.log('Area size of layout ' + layoutName + ' not defined.');
+			console.log('Area size of layout ' + button.name + ' not defined.');
 		}
 	},
 	
 	_hidePrintArea: function () {
-		if(this._area){
-			this._area.remove();
+		for(buttonId in this._actionButtons) {
+			button = this._actionButtons[buttonId];
+	
+			if(button.area){
+				this._area.remove();
+				button.area=false;
+			}
 		}
 	},
 
@@ -202,32 +206,23 @@ L.Control.Print = L.Control.extend({
 				
 				if(this.options.showArea){
 					if(!button.area){
-						
-						for (buttonId in this._actionButtons) {
-							this._actionButtons[buttonId].area=null;
-						}
-						
-						this._showPrintArea(button.name);
-						button.area=true;
-						
+						this._hidePrintArea();
+						this._showPrintArea(button);
 						break;
+					} else {
+						this._provider.print({
+							layout: button.name,
+							area: this._area
+						});
+
+						this._hidePrintArea();
 					}
-				}
-				
-				if(this.options.showArea){
-					this._provider.print({
-						layout: button.name,
-						area: this._area
-					});
 				} else {
 					this._provider.print({
 						layout: button.name
 					});
 				}
-
-				button.area=null;
-				this._hidePrintArea();
-
+				
 				break;
 			}
 		}
